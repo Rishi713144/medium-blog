@@ -4,6 +4,7 @@ import { BACKEND_URL } from "../config";
 
 
 export interface Blog {
+    createdAt: string;
     "content": string;
     "title": string;
     "id": number
