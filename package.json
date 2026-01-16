@@ -2,6 +2,7 @@
   "name": "medium-blog-root",
   "private": true,
   "scripts": {
+    "dev": "pnpm --filter backend --filter frontend --parallel dev",
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "deploy:backend": "pnpm --filter backend deploy",

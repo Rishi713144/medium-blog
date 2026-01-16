@@ -1,6 +1,7 @@
 import { createBlogInput, updateBlogInput } from "@rishikonar/medium-common";
-import { PrismaClient } from "@prisma/client/edge";
-import { withAccelerate } from "@prisma/extension-accelerate";
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { Pool } from 'pg'
 import { Hono } from "hono";
 import { verify } from "hono/jwt";
 
@@ -15,19 +16,26 @@ export const blogRouter = new Hono<{
 }>();
 
 blogRouter.use("/*", async (c, next) => {
-    const authHeader = c.req.header("authorization") || "";
+    let authHeader = c.req.header("authorization") || "";
+    // Handle Bearer authentication 
+    if (authHeader.startsWith("Bearer ")) {
+        authHeader = authHeader.split(" ")[1];
+    }
+    
     try {
-        const user = (await verify(authHeader, c.env.JWT_SECRET)) as { id: string | number };
+        const user = await verify(authHeader, c.env.JWT_SECRET, "HS256");
         if (user) {
-            c.set("userId", String(user.id));
+            c.set("userId", user.id as string);
             await next();
         } else {
+            console.log("Auth failed: No user returned from verify");
             c.status(403);
             return c.json({
                 message: "You are not logged in"
             })
         }
     } catch(e) {
+        console.log("Auth failed:", e);
         c.status(403);
         return c.json({
             message: "You are not logged in"
@@ -46,15 +54,15 @@ blogRouter.post('/', async (c) => {
     }
 
     const authorId = c.get("userId");
-    const prisma = new PrismaClient({
-      datasourceUrl: c.env.DATABASE_URL,
-    }).$extends(withAccelerate())
+    const pool = new Pool({ connectionString: c.env.DATABASE_URL })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
 
-    const blog = await prisma.blog.create({
+    const blog = await prisma.post.create({
         data: {
             title: body.title,
             content: body.content,
-            authorId: Number(authorId)
+            authorId: authorId
         }
     })
 
@@ -73,14 +81,14 @@ blogRouter.put('/', async (c) => {
         })
     }
 
-    const prisma = new PrismaClient({
-      datasourceUrl: c.env.DATABASE_URL,
-    }).$extends(withAccelerate())
+    const pool = new Pool({ connectionString: c.env.DATABASE_URL })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
 
-    const blog = await prisma.blog.update({
+    const blog = await prisma.post.update({
         where: {
             id: body.id
-        }, 
+        },  
         data: {
             title: body.title,
             content: body.content
@@ -94,10 +102,10 @@ blogRouter.put('/', async (c) => {
 
 // Todo: add pagination
 blogRouter.get('/bulk', async (c) => {
-    const prisma = new PrismaClient({
-        datasourceUrl: c.env.DATABASE_URL,
-    }).$extends(withAccelerate())
-    const blogs = await prisma.blog.findMany({
+    const pool = new Pool({ connectionString: c.env.DATABASE_URL })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
+    const blogs = await prisma.post.findMany({
         select: {
             content: true,
             title: true,
@@ -117,14 +125,15 @@ blogRouter.get('/bulk', async (c) => {
 
 blogRouter.get('/:id', async (c) => {
     const id = c.req.param("id");
-    const prisma = new PrismaClient({
-      datasourceUrl: c.env.DATABASE_URL,
-    }).$extends(withAccelerate())
+    // Cleaned up
+    const pool = new Pool({ connectionString: c.env.DATABASE_URL })
+    const adapter = new PrismaPg(pool)
+    const prisma = new PrismaClient({ adapter })
 
     try {
-        const blog = await prisma.blog.findFirst({
+        const blog = await prisma.post.findFirst({
             where: {
-                id: Number(id)
+                id: id
             },
             select: {
                 id: true,
@@ -142,7 +151,7 @@ blogRouter.get('/:id', async (c) => {
             blog
         });
     } catch(e) {
-        c.status(411); // 4
+        c.status(411);
         return c.json({
             message: "Error while fetching blog post"
         });
