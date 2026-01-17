@@ -30,7 +30,7 @@ export const BlogCard = ({
                 {title}
             </div>
             <div className="text-md font-thin">
-                {content.slice(0, 100) + "..."}
+                {content.replace(/<[^>]+>/g, '').slice(0, 100) + "..."}
             </div>
             <div className="text-slate-500 text-sm font-thin pt-4">
                 {`${Math.ceil(content.length / 100)} minute(s) read`}
