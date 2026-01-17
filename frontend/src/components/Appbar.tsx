@@ -1,7 +1,14 @@
 import { Avatar } from "./BlogCard";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export const Appbar = () => {
+    const navigate = useNavigate();
+
+    const logout = () => {
+        localStorage.removeItem("token");
+        navigate("/signin");
+    };
+
     return (
         <nav className="border-b border-slate-100 flex justify-between items-center px-6 md:px-16 py-3 bg-white sticky top-0 z-50">
             {/* Logo Section */}
@@ -25,6 +32,16 @@ export const Appbar = () => {
 
                 <div className="cursor-pointer hover:ring-2 hover:ring-slate-200 rounded-full transition-all">
                     <Avatar size={"big"} name="Rishi" />
+                </div>
+
+                <div className="ml-4">
+                    <button 
+                        onClick={logout}
+                        type="button" 
+                        className="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+                    >
+                        Logout
+                    </button>
                 </div>
             </div>
         </nav>
